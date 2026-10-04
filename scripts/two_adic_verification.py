@@ -86,10 +86,13 @@ def verify_all_theorems(max_k: int = 100):
     print(f"-> Pre-filter pruning rate (delta_k < 2/3): {prefilter_pruned}/{total_indices} = {prefilter_pruned/total_indices*100:.2f}%")
 
     print("\n" + "=" * 80)
-    print("2. VERIFYING THEOREM 5 (STATE COLLAPSE) & THEOREM 6 (DYNAMICAL REPULSION)")
+    print("2. VERIFYING THEOREM 5 (STATE COLLAPSE) & THEOREM 6 (ISOLATION & RATIO EXPANSION)")
     print("=" * 80)
     
-    # We test simulated failure inputs D_k in [1, q_k) to prove dynamical repulsion algebraically
+    # We test simulated failure inputs D_cand in [1, q_k) to verify:
+    # 1. State collapse to C in {-1, 0}
+    # 2. Branch 1 (q_k even): strict isolation D_{k+1} > 2 * q_{k+1}
+    # 3. Branch 2 (q_k odd): geometric doubling of safety ratio (ratio_next > 1.9 * ratio_k)
     simulated_tests = 0
     for k in range(5, 30):
         q_k = (3**k) // (2**k)
@@ -119,18 +122,18 @@ def verify_all_theorems(max_k: int = 100):
                 
             q_next = (3**(k+1)) // (2**(k+1))
             
-            # Theorem 6 check: D_{k+1} > 2 * q_{k+1} when q_k is even
+            # Theorem 6 check: D_{k+1} > 2 * q_{k+1} when q_k is even (Branch 1 isolation)
             if q_k % 2 == 0:
                 assert D_next_sim > 2 * q_next, f"Repulsion violated at k={k}: D_next={D_next_sim}, 2*q_next={2*q_next}"
             else:
-                # Doubling ratio check
+                # Doubling ratio check (Branch 2 expansion)
                 ratio_k = D_cand / q_k
                 ratio_next = D_next_sim / q_next
                 # ratio_next should be >= 1.90 * ratio_k
                 assert ratio_next > 1.90 * ratio_k, f"Doubling violated at k={k}: ratio_k={ratio_k}, ratio_next={ratio_next}"
                 
     print(f"-> Verified {simulated_tests} simulated failure configurations across k in [5, 29].")
-    print("-> Theorem 5 and Theorem 6 verified algebraically and dynamically!")
+    print("-> Theorem 5 and Theorem 6 verified (Even isolation & Odd ratio doubling)!")
 
     print("\n" + "=" * 80)
     print("3. VERIFYING CARRY TRANSDUCER AUTOMATON SPECTRUM (SECTION 4.1)")
