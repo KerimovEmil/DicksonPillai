@@ -26,7 +26,7 @@ _k + q_k ≤ 2^k ↔ q_k ≤ D_k.
 5. **Theorems 5 & 6: State Collapse & Dynamical Repulsion:**
    Under failure with q_k even, C_k = -1 forces:
    D_{k+1} = 3 D_k + 2^k > 2^k > 2 * q_{k+1} (Branch 1 strict isolation).
-6. **Section 4.1: Carry Transducer Automaton Spectrum:**
+6. **Section 5.1: Carry Transducer Automaton Spectrum:**
    Characteristic polynomial P(x) = -x^4 + x^3 + x^2 - x.
    Roots x ∈ {0, 1, -1} certified, yielding spectral radius ρ(A) = 1
    and topological entropy h_top = 0.
@@ -305,7 +305,7 @@ theorem repulsion_even_isolated_k5 (D_k : Nat) (hD : 1 ≤ D_k) :
   have h2 : 2^5 > 2 * q 6 := repulsion_bound_k5
   omega
 
-/-! ## 7. Carry Transducer Automaton on Runs of Ones (Section 4.1) -/
+/-! ## 7. Carry Transducer Automaton on Runs of Ones (Section 5.1) -/
 
 /-- Characteristic polynomial of the carry transducer transition matrix A:
     P(x) = -x^4 + x^3 + x^2 - x -/

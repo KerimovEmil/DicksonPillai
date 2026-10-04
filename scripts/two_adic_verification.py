@@ -136,7 +136,7 @@ def verify_all_theorems(max_k: int = 100):
     print("-> Theorem 5 and Theorem 6 verified (Even isolation & Odd ratio doubling)!")
 
     print("\n" + "=" * 80)
-    print("3. VERIFYING CARRY TRANSDUCER AUTOMATON SPECTRUM (SECTION 4.1)")
+    print("3. VERIFYING CARRY TRANSDUCER AUTOMATON SPECTRUM (SECTION 5.1)")
     print("=" * 80)
     
     A = np.array([

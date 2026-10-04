@@ -8,6 +8,7 @@
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{microtype}
+\usepackage{array}
 
 \hypersetup{
     colorlinks=true,
@@ -100,7 +101,7 @@ The theoretical landscape features a severe barrier:
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabular}{p{0.19\textwidth}p{0.25\textwidth}p{0.30\textwidth}p{0.17\textwidth}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.19\textwidth}>{\raggedright\arraybackslash}p{0.25\textwidth}>{\raggedright\arraybackslash}p{0.30\textwidth}>{\raggedright\arraybackslash}p{0.17\textwidth}}
 \toprule
 \textbf{Method / Work} & \textbf{Technique / Invariant} & \textbf{Main Scope / Result} & \textbf{Effectivity} \\
 \midrule
@@ -119,7 +120,7 @@ Kubina--Wunderlich (1990) \cite{kubina1990} & Multi-precision FFT & Zero excepti
 \caption{Comparative state of the art on the Dickson--Pillai problem in Waring's problem.}\label{tab:comparison}
 \end{table}
 
-Closing the exponent gap from $0.787$ down to $0.415037$ has remained open for nearly a century. In this work, we develop a new local-to-global and automata-theoretic framework, uncovering exact algebraic conservation laws in $\mathbb{Z}_2$, state collapses, and dynamical repulsion laws that restrict hypothetical counterexamples.
+Closing the exponent gap from $0.787$ down to $0.415037$ has remained open for nearly a century. In this work, we develop a new local-to-global and automata-theoretic framework, uncovering exact algebraic conservation laws in $\mathbb{Z}_2$, state collapses, and dynamical isolation and ratio expansion laws that restrict hypothetical counterexamples.
 
 ---
 
@@ -198,7 +199,7 @@ v_2(D_k + 1) = \min(v_2(A), v_2(9^m - 1)) = v_2(9^m - 1) = v_2(k) + 2. \qedhere
     \begin{equation}
     v_2(D_k + 3) = 3 \iff D_k \equiv 5 \pmod{16}.
     \end{equation}
-    \item For all $k \equiv 1 \pmod 4$ with $k - v_2(k - 1) \ge 3$:
+    \item For all $k \equiv 1 \pmod 4$ with $k \ge 5$:
     \begin{equation}
     v_2(D_k + 3) = v_2(k - 1) + 2.
     \end{equation}
@@ -218,7 +219,7 @@ When $k \equiv 3 \pmod 4$, $m$ is odd. Then $V_m = \sum_{\ell=0}^{m-1} 9^\ell \e
 For $k \ge 5$, $k - 3 \ge 2$, so $(q_k + 1)2^{k-3}$ is even while $3 V_m$ is odd.
 Hence $(D_k + 3)/8$ is odd, establishing $v_2(D_k + 3) = 3$.
 When $k \equiv 1 \pmod 4$, $m = (k-1)/2$ is even, so $v_2(V_m) = v_2(m) = v_2(k-1) - 1$.
-Then $v_2(24 V_m) = 3 + v_2(m) = v_2(k-1) + 2$, and the ultrametric property finishes the proof.
+Then $v_2(24 V_m) = 3 + v_2(m) = v_2(k-1) + 2$. Since $k \ge 5$, $k > v_2(k-1) + 2$ (because $v_2(k-1) \le \log_2(k-1) < k - 2$). By the ultrametric property, $v_2(D_k + 3) = v_2(k-1) + 2$.
 \end{proof}
 
 ---
@@ -356,8 +357,8 @@ Theorem~\ref{thm:repulsion} establishes that the failure zone is dynamically uns
 \subsection{\texorpdfstring{Theorem 7: Universal 2-Adic Fixed-Point Reduction ($\nu = \frac{\ln_2 3}{4}$)}{Theorem 7: Universal 2-Adic Fixed-Point Reduction (nu = ln 3 / 4)}}
 
 \begin{theorem}[Universal 2-Adic Non-Linear Fixed-Point Reduction]\label{thm:nu_reduction}
-Let $\nu := \frac{\ln_2 3}{4} \in \mathbb{Z}_2^\times$ denote the universal 2-adic transcendental constant.
-For any even failure index $k = 2^{v_2(k)} u \ge 6$ (with $u$ odd), the integer defect parameter $W := \frac{D_k + 1}{2^{v_2(k)+2}}$ satisfies:
+Let $\nu := \frac{\ln_2 3}{4} \in \mathbb{Z}_2^\times$ denote the universal 2-adic constant.
+For every even integer $k = 2^{v_2(k)} u \ge 6$ (with $u$ odd), the integer defect parameter $W := \frac{D_k + 1}{2^{v_2(k)+2}}$ satisfies:
 \begin{enumerate}
     \item \textbf{Exact Non-Linear Congruence:} Modulo $2^{k - v_2(k) - 2}$, $W$ satisfies the exact identity:
     \begin{equation}\label{eq:exact_nonlinear_cong}
@@ -371,9 +372,9 @@ For any even failure index $k = 2^{v_2(k)} u \ge 6$ (with $u$ odd), the integer 
     \begin{equation}\label{eq:first_order_lin}
     (-u \cdot \nu) \equiv W \pmod{2^{v_2(k) + 1}}.
     \end{equation}
-    \item \textbf{Rational Reconstruction Bifurcation:}
-    When $v_2(k) \ge \frac{1}{2} k \log_2(3/2)$, the modulus $2^{v_2(k)+1}$ satisfies $2^{v_2(k)+1} > 2 u W$, and the pair $(u, W)$ is uniquely determined as a convergent of $\nu$ via the Wang--Guy--Davenport rational reconstruction theorem.
-    Conversely, for generic even $k$ where $v_2(k)$ is small (e.g., $k \equiv 2 \pmod 4$ with $v_2(k) = 1$), the first-order modulus is $2^2 = 4$, which is insufficient for linear rational reconstruction; however, the full non-linear identity \eqref{eq:exact_nonlinear_cong} maintains high precision modulo $2^{k - v_2(k) - 2}$, defining $W$ as an isolated non-linear 2-adic fixed point.
+    \item \textbf{Rational Reconstruction under Failure:}
+    Under a hypothetical failure $D_k < q_k$, we have $W < \frac{1}{8}(3/2)^k$. When $v_2(k) \ge \frac{1}{2} k \log_2(3/2)$, the modulus $2^{v_2(k)+1}$ satisfies $2^{v_2(k)+1} > 2 u W$, and the pair $(u, W)$ is uniquely determined as a convergent of $\nu$ via the Wang--Guy--Davenport rational reconstruction theorem.
+    Conversely, for generic even $k$ where $v_2(k)$ is small (e.g., $k \equiv 2 \pmod 4$ with $v_2(k) = 1$), the first-order modulus is $2^2 = 4$; however, the full non-linear identity \eqref{eq:exact_nonlinear_cong} maintains high precision modulo $2^{k - v_2(k) - 2}$, defining $W$ as an isolated non-linear 2-adic fixed point.
 \end{enumerate}
 \end{theorem}
 
@@ -416,9 +417,7 @@ Multiplication of an integer by $3 = (11)_2$ in base $2$ is executed by the elem
 a_j + a_{j-1} + c_j = 2 c_{j+1} + y_j,
 \]
 where $a_j \in \{0, 1\}$ are the bits of the input, $c_j \in \{0, 1\}$ is the carry bit, and $y_j \in \{0, 1\}$ is the emitted bit.
-In a two-step delay representation, the state of the automaton is given by $(a_{j-1}, c_j) \in \{00, 01, 10, 11\}$.
-
-To analyze the emission of unbroken monochromatic blocks of ones ($y_j = 1$), we define the subshift of finite type $\Sigma_A$ constrained to paths where every emitted bit satisfies $y_j = 1$. The transition matrix governing valid state transitions under this constraint is:
+Ordering the automaton states $(a_{j-1}, c_j)$ as $1 = (0, 0)$, $2 = (0, 1)$, $3 = (1, 0)$, and $4 = (1, 1)$, we examine valid transitions emitting $y_j = 1$. Under this constraint, each state admits a unique input bit $a_j$: state $1$ transitions to $3$, states $2$ and $3$ transition to $1$, and state $4$ transitions to itself. The corresponding transition matrix $A = (A_{i,j})$, where $A_{i,j} = 1$ denotes an admissible transition from state $i$ to state $j$, is:
 \begin{equation}\label{eq:matrix_A}
 A = \begin{pmatrix}
 0 & 0 & 1 & 0 \\
@@ -654,7 +653,7 @@ theorem repulsion_bound_k5  : 2^5 > 2 * q 6
 theorem repulsion_even_isolated_k5 (D_k : Nat) (hD : 1 <= D_k) :
     3 * D_k + 2^5 > 2 * q 6
 
--- Section 4.1: Carry Transducer Matrix Spectrum
+-- Section 5.1: Carry Transducer Matrix Spectrum
 def charPolyA (x : Int) : Int := -x^4 + x^3 + x^2 - x
 theorem char_poly_root_zero : charPolyA 0 = 0
 theorem char_poly_root_one  : charPolyA 1 = 0
