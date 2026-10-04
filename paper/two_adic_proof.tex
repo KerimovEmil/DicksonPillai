@@ -31,6 +31,7 @@
 
 \author{Emil Kerimov}
 \email{emil.kerimov93@gmail.com}
+\thanks{The author acknowledges the assistance of Google DeepMind's Gemini in mathematical exploration, proof synthesis, and the preparation of this manuscript and formal verification.}
 \date{\today}
 
 \subjclass[2020]{Primary 11P05, 11J86; Secondary 11S80, 37B10, 68R15}
@@ -604,6 +605,9 @@ All division identities, residue exclusions, 2-adic LTE formulas, discrete carry
 The formalization compiles with zero errors, zero warnings, and zero unproven axioms (relying only on standard Lean core \texttt{propext}, \texttt{Quot.sound}, and \texttt{Classical.choice}).
 
 In the accompanying Lean~4 repository, general algebraic identities (such as the polynomial parity invariant $V_m \bmod 2 \equiv m \bmod 2$, the defect equivalence, the discrete drift identities, the failure isolation inequalities, and the automaton spectrum) are proven for all $m, k \in \mathbb{N}$, while the higher valuation instances of the LTE rigidity theorems are formally verified on finite parameter domains via certified kernel evaluation (\texttt{decide}).
+
+\section*{Acknowledgments}
+The author acknowledges the assistance of Google DeepMind's Gemini in mathematical exploration, proof synthesis, and the preparation of this manuscript and formal verification.
 
 \appendix
 \section{Formal Lean 4 Theorem Signatures}
