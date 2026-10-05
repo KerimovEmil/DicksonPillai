@@ -1,4 +1,4 @@
-# The Dickson–Pillai Defect: 2-Adic Rigidity, Carry Automata, and Dynamical Repulsion
+# The Dickson–Pillai Defect: 2-Adic Rigidity, Carry Automata, and Dynamical Isolation
 
 [![Lean 4](https://img.shields.io/badge/Lean_4-100%25_Verified-blue.svg)](formalization/TwoAdicDefectRigidity.lean)
 [![PDF Manuscript](https://img.shields.io/badge/Manuscript-12_pages-red.svg)](paper/two_adic_proof.pdf)
@@ -20,7 +20,7 @@ $$\left\Vert{} \left(\frac{3}{2}\right)^k \right\Vert{} < \left(\frac{3}{4}\righ
 DicksonPillai/
 ├── paper/                      # Research manuscript (AMS-LaTeX and compiled PDF)
 │   ├── two_adic_proof.tex
-│   └── two_adic_proof.pdf      # 13-page publication draft
+│   └── two_adic_proof.pdf      # 12-page publication preprint
 ├── formalization/              # Zero-axiom Lean 4 formal verification
 │   └── TwoAdicDefectRigidity.lean
 ├── scripts/                    # Empirical testing and numerical verification
@@ -38,17 +38,17 @@ DicksonPillai/
 
 ## 🔬 Core Proven Structural Theorems
 
-All core theorems below are proven in the manuscript ([`paper/two_adic_proof.pdf`](paper/two_adic_proof.pdf)) and formally verified in Lean~4 ([`formalization/TwoAdicDefectRigidity.lean`](formalization/TwoAdicDefectRigidity.lean)):
+All core theorems below are established in the manuscript ([`paper/two_adic_proof.pdf`](paper/two_adic_proof.pdf)) and formally verified in Lean~4 ([`formalization/TwoAdicDefectRigidity.lean`](formalization/TwoAdicDefectRigidity.lean)):
 
 | Theorem | Name | Mathematical Statement | Status |
 | :--- | :--- | :--- | :--- |
 | **Theorem 1** | **Residue Exclusion Modulo 8** | $D_k \bmod 8 \in \{5, 7\}$ for all $k \ge 3$; eliminates $75\%$ of residue classes; proves $D_k \notin \{1, 3\}$ and $D_k$ odd. | **Unconditional & Formalized ($\forall k \ge 3$)** |
-| **Theorem 2** | **Even Index 2-Adic Rigidity** | For even $k \ge 6$: $v_2(D_k + 1) = v_2(k) + 2$ via LTE and ultrametric valuation. | **Unconditional (Lean Kernel Certified)** |
-| **Theorem 3** | **Odd Index 2-Adic Rigidity** | $k \equiv 3 \pmod 4 \implies v_2(D_k + 3) = 3$; $k \equiv 1 \pmod 4 \implies v_2(D_k + 3) = v_2(k - 1) + 2$. | **Unconditional (Lean Kernel Certified)** |
+| **Theorem 2** | **Even Index 2-Adic Rigidity** | For even $k \ge 6$: $v_2(D_k + 1) = v_2(k) + 2$ via LTE and ultrametric valuation. | **Unconditional (Lean Kernel Certified Instances)** |
+| **Theorem 3** | **Odd Index 2-Adic Rigidity** | $k \equiv 3 \pmod 4 \implies v_2(D_k + 3) = 3$; $k \equiv 1 \pmod 4 \implies v_2(D_k + 3) = v_2(k - 1) + 2$. | **Unconditional (Lean Kernel Certified Instances)** |
 | **Theorem 4** | **4-State Carry Drift Recurrence** | $3 D_k - D_{k+1} = C_k 2^k$, with multiplier $C_k \in \{-1, 0, 1, 2\}$ governed by a cylinder partition on $(q_k \bmod 2, \delta_k)$. | **Unconditional & Formalized ($\forall k \in \mathbb{N}$)** |
 | **Theorem 5** | **State Collapse Under Failure** | Failure $D_k < q_k$ forces $\delta_k > 2/3$, strictly forbidding $C_k \in \{1, 2\}$ and locking $C_k \in \{-1, 0\}$. | **Unconditional** |
 | **Theorem 6** | **Dynamical Isolation & Ratio Expansion** | Even quotient failures strictly isolated ($D_{k+1} > 2^k > 2 q_{k+1}$); odd quotients double safety ratio ($\frac{D_{k+1}}{q_{k+1}} > 1.9 \frac{D_k}{q_k}$); failure chains bounded. | **Unconditional & Formalized (Branch 1)** |
-| **Theorem 7** | **Universal 2-Adic Fixed Point** | Even failure indices satisfy an exact non-linear fixed-point identity modulo $2^{k - v_2(k) - 2}$ governed by $\nu = \frac{\ln_2 3}{4} \in \mathbb{Z}_2^\times$. | **Unconditional** |
+| **Theorem 7** | **Universal 2-Adic Fixed Point** | Even integers satisfy an exact non-linear identity modulo $2^{k - v_2(k) - 2}$ governed by $\nu = \frac{\ln_2 3}{4} \in \mathbb{Z}_2^\times$. | **Unconditional** |
 
 ---
 
