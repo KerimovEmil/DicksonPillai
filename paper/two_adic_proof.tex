@@ -70,6 +70,7 @@ provided that the quotient $q_k = \lfloor (3/2)^k \rfloor$ and remainder $r_k = 
 \begin{equation}\label{eq:dp_condition}
 r_k + q_k \le 2^k, \quad \text{where } 3^k = q_k 2^k + r_k \quad (0 \le r_k < 2^k).
 \end{equation}
+If this condition were to fail ($r_k + q_k > 2^k$), the formula for $g(k)$ would acquire additional terms depending on $\lfloor (4/3)^k \rfloor$, as investigated by Pillai \cite{pillai1940}, Rubugunday \cite{rubugunday1942}, and Niven \cite{niven1944}.
 
 \subsection{The Diophantine Defect and Failure Envelope}
 Let the Diophantine \emph{defect} $D_k$ be defined by:
@@ -622,7 +623,7 @@ The author acknowledges the assistance of Google DeepMind's Gemini in mathematic
 \section{Formal Lean 4 Theorem Signatures}
 Below are the exact Lean~4 declarations and signatures proven in \texttt{TwoAdicDefectRigidity.lean}:
 
-\begin{scriptsize}
+\begin{tiny}
 \begin{verbatim}
 -- Division identity & equivalence to Dickson-Pillai condition
 theorem div_identity (k : Nat) : 3^k = 2^k * (3^k / 2^k) + (3^k % 2^k)
@@ -647,11 +648,9 @@ theorem odd_branch_k13    : (D 13 + 3) % 32 = 16
 theorem odd_branch_k17    : (D 17 + 3) % 128 = 64
 
 -- Theorem 6: Dynamical Repulsion and Failure Isolation
-theorem repulsion_defect_step (D_k : Nat) (two_k : Nat) (hD : 1 <= D_k) :
-    3 * D_k + two_k > two_k
+theorem repulsion_defect_step (D_k : Nat) (two_k : Nat) (hD : 1 <= D_k) : 3 * D_k + two_k > two_k
 theorem repulsion_bound_k5  : 2^5 > 2 * q 6
-theorem repulsion_even_isolated_k5 (D_k : Nat) (hD : 1 <= D_k) :
-    3 * D_k + 2^5 > 2 * q 6
+theorem repulsion_even_isolated_k5 (D_k : Nat) (hD : 1 <= D_k) : 3 * D_k + 2^5 > 2 * q 6
 
 -- Section 5.1: Carry Transducer Matrix Spectrum
 def charPolyA (x : Int) : Int := -x^4 + x^3 + x^2 - x
@@ -659,9 +658,10 @@ theorem char_poly_root_zero : charPolyA 0 = 0
 theorem char_poly_root_one  : charPolyA 1 = 0
 theorem char_poly_root_neg1 : charPolyA (-1) = 0
 \end{verbatim}
-\end{scriptsize}
+\end{tiny}
 
 \begin{thebibliography}{99}
+\small
 \bibitem{bennett1994}
 M.~A.~Bennett, \emph{Fractional parts of powers of rational numbers}, Math. Proc. Cambridge Philos. Soc. \textbf{115} (1994), no.~3, 449--461.
 
@@ -677,8 +677,17 @@ J.~M.~Kubina and M.~C.~Wunderlich, \emph{Extending Waring's conjecture to all co
 \bibitem{mahler1957}
 K.~Mahler, \emph{On the fractional parts of the powers of a rational number (II)}, Mathematika \textbf{4} (1957), 122--124.
 
+\bibitem{niven1944}
+I.~Niven, \emph{An unsolved case of the Waring problem}, Amer. J. Math. \textbf{66} (1944), 137--143.
+
 \bibitem{pillai1936}
 S.~S.~Pillai, \emph{On Waring's problem $g(k) = 2^k + \lfloor(3/2)^k\rfloor - 2$}, Proc. Indian Acad. Sci. Sect. A \textbf{4} (1936), 261--267.
+
+\bibitem{pillai1940}
+S.~S.~Pillai, \emph{On Waring's problem: $g(6) = 73$}, Proc. Indian Acad. Sci. Sect. A \textbf{12} (1940), 30--40.
+
+\bibitem{rubugunday1942}
+R.~K.~Rubugunday, \emph{On $g(k)$ in Waring's problem}, J. Indian Math. Soc. (N.S.) \textbf{6} (1942), 192--198.
 \end{thebibliography}
 
 \end{document}
