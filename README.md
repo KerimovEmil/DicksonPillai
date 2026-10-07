@@ -1,7 +1,7 @@
 # The Dickson–Pillai Defect: 2-Adic Rigidity, Carry Automata, and Dynamical Isolation
 
 [![Lean 4](https://img.shields.io/badge/Lean_4-100%25_Verified-blue.svg)](formalization/TwoAdicDefectRigidity.lean)
-[![PDF Manuscript](https://img.shields.io/badge/Manuscript-12_pages-red.svg)](paper/two_adic_proof.pdf)
+[![PDF Manuscript](https://img.shields.io/badge/Manuscript-16_pages-red.svg)](paper/two_adic_proof.pdf)
 [![Release](https://img.shields.io/badge/Release-v1.0.0-green.svg)](https://github.com/KerimovEmil/DicksonPillai/releases/tag/v1.0.0)
 
 This repository hosts the formal verification, research manuscript, empirical test suites, and Diophantine barrier analyses for the **Dickson–Pillai condition** in Waring's problem:
