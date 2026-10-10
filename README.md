@@ -1,7 +1,7 @@
 # The Dickson–Pillai Defect: 2-Adic Rigidity, Carry Automata, and Dynamical Isolation
 
 [![Lean 4](https://img.shields.io/badge/Lean_4-100%25_Verified-blue.svg)](formalization/TwoAdicDefectRigidity.lean)
-[![PDF Manuscript](https://img.shields.io/badge/Manuscript-16_pages-red.svg)](paper/two_adic_proof.pdf)
+[![PDF Manuscript](https://img.shields.io/badge/Manuscript-17_pages-red.svg)](paper/dickson_pillai_defect_rigidity.pdf)
 [![Release](https://img.shields.io/badge/Release-v1.0.0-green.svg)](https://github.com/KerimovEmil/DicksonPillai/releases/tag/v1.0.0)
 
 This repository hosts the formal verification, research manuscript, empirical test suites, and Diophantine barrier analyses for the **Dickson–Pillai condition** in Waring's problem:
@@ -19,26 +19,36 @@ $$\left\Vert{} \left(\frac{3}{2}\right)^k \right\Vert{} < \left(\frac{3}{4}\righ
 ```
 DicksonPillai/
 ├── paper/                      # Research manuscript (AMS-LaTeX and compiled PDF)
-│   ├── two_adic_proof.tex
-│   └── two_adic_proof.pdf      # 16-page publication preprint
+│   ├── dickson_pillai_defect_rigidity.tex
+│   └── dickson_pillai_defect_rigidity.pdf  # 17-page publication preprint
 ├── formalization/              # Zero-axiom Lean 4 formal verification
-│   └── TwoAdicDefectRigidity.lean
-├── scripts/                    # Empirical testing and numerical verification
-│   └── two_adic_verification.py
-└── explorations/               # Supplementary & exploratory Diophantine architectures
+│   ├── TwoAdicDefectRigidity.lean          # Tier 1 standalone core logic
+│   └── TwoAdicMathlib.lean                 # Tier 2 Mathlib valuation extensions
+├── verification/               # High-throughput C++ and algorithmic verification
+│   ├── parallel_verifier.cpp   # Multi-threaded 128-bit limb streaming engine
+│   ├── verifier.cpp            # Reference single-threaded C++ engine
+│   ├── dickson_pillai.py       # High-precision Python verification harness
+│   └── records/                # Certified checkpoint logs up to k = 50,000,000
+├── oeis/                       # OEIS A153663 sequence submission & verification
+│   ├── b153663.txt             # Certified b-file table with omitted records
+│   ├── A153663_submission.md   # Mathematical discovery & submission dossier
+│   └── oeis_record_verifier.py # Certification script for upper records of {3^k / 2^k}
+├── scripts/                    # Core verification & orchestration test suites
+│   ├── two_adic_verification.py
+│   └── run_progressive_verification.py
+└── explorations/               # Supplementary Diophantine frameworks & barriers
     ├── README.md               # Overview of exploratory frameworks and barriers
     ├── frey_modular_degree/    # Frey curve and Szpiro ratio bounds (σ ≥ 5.26189)
     ├── nesterenko_modular/     # Automorphic differential algebra and cusp degenerations
     ├── hermite_pade/           # Hypergeometric Padé rank degeneracies over ℚ
-    ├── numerical_validation/   # Multi-threaded C++ verifier (checkpoints up to k = 25M)
-    └── miscellaneous/          # Plots and visualizations
+    └── miscellaneous/          # Multi-architecture comparison and visualizations
 ```
 
 ---
 
 ## 🔬 Core Proven Structural Theorems
 
-All core theorems below are established in the manuscript ([`paper/two_adic_proof.pdf`](paper/two_adic_proof.pdf)) and formally verified in Lean~4 ([`formalization/TwoAdicDefectRigidity.lean`](formalization/TwoAdicDefectRigidity.lean)):
+All core theorems below are established in the manuscript ([`paper/dickson_pillai_defect_rigidity.pdf`](paper/dickson_pillai_defect_rigidity.pdf)) and formally verified in Lean~4 ([`formalization/TwoAdicDefectRigidity.lean`](formalization/TwoAdicDefectRigidity.lean)):
 
 | Theorem | Name | Mathematical Statement | Status |
 | :--- | :--- | :--- | :--- |
@@ -72,6 +82,19 @@ The formal verification is structured into a clean two-tier architecture:
    lake build
    ```
 
+### High-Throughput Streaming Engine (C++, up to $k = 50{,}000{,}000$)
+Unrolled 128-bit limb streaming verifier with multi-threaded chunking:
+```bash
+g++ -O3 -std=c++17 -pthread verification/parallel_verifier.cpp -o verification/parallel_verifier
+./verification/parallel_verifier
+```
+
+### OEIS A153663 Record Verifier
+Verify the upper record sequence of $\{3^k / 2^k\}$ and the recovered record $k = 10{,}406{,}357$:
+```bash
+python oeis/oeis_record_verifier.py
+```
+
 ### Python Verification Suite
 Audits all valuations, carry drift partitions, simulated failure escapes, and automaton spectrum up to $k = 100$:
 ```bash
@@ -81,8 +104,8 @@ python scripts/two_adic_verification.py
 ### LaTeX Manuscript Compilation
 ```bash
 cd paper
-pdflatex two_adic_proof.tex
-pdflatex two_adic_proof.tex
+pdflatex dickson_pillai_defect_rigidity.tex
+pdflatex dickson_pillai_defect_rigidity.tex
 ```
 
 ---

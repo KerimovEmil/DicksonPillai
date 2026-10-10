@@ -13,6 +13,7 @@ While the main manuscript (see [`../paper/`](../paper/)) develops the 2-adic rig
 * **[`frey_proof.tex`](./frey_modular_degree/frey_proof.tex) / [`frey_proof.pdf`](./frey_modular_degree/frey_proof.pdf):** Investigates the Frey curve $E_k : y^2 = x(x - r_k)(x + 2^k q_k)$ associated with the ternary partition $r_k + 2^k q_k = 3^k$.
 * **[`formalization/FreyDicksonPillai.lean`](./frey_modular_degree/formalization/FreyDicksonPillai.lean):** Lean 4 formalization of the Frey curve discriminant, conductor bounds, and Szpiro ratio $\sigma(E_k)$.
 * **[`critique_and_salvage.md`](./frey_modular_degree/critique_and_salvage.md):** Detailed analysis showing that failure forces $\sigma_{\mathrm{fail}} \ge 5.26189$, whereas unconditional modular degree bounds (Hoffstein–Lockhart 1994) yield only $\sigma \le 12$, requiring an effective version of the $abc$ conjecture over $\mathbb{Q}$.
+* **[`frey_curve_analysis.py`](./frey_modular_degree/frey_curve_analysis.py):** Numerical analysis of Szpiro ratios, conductor exponents, and modular forms.
 
 ### 📁 `nesterenko_modular/` (Automorphic & Differential Algebra Framework)
 * **[`modular_proof.tex`](./nesterenko_modular/modular_proof.tex) / [`modular_proof.pdf`](./nesterenko_modular/modular_pdf.pdf):** Investigates Nesterenko's differential algebra on Eisenstein series $(\mathbb{Q}[q, E_2, E_4, E_6], \theta)$ evaluated at $q_k = 2^{-k}$.
@@ -24,9 +25,9 @@ While the main manuscript (see [`../paper/`](../paper/)) develops the 2-adic rig
 * **[`formalization/DicksonPillai.lean`](./hermite_pade/formalization/DicksonPillai.lean):** Lean 4 proofs of Diophantine exponent hierarchies and modular transformations.
 * **[`hermite_pade_systematic.py`](./hermite_pade/hermite_pade_systematic.py) & [`pade_hypergeometric.py`](./hermite_pade/pade_hypergeometric.py):** Numerical verification showing that simultaneous systems for $(1-z)^{\pm 1/2}$ at $z = 1/9$ drop rank over $\mathbb{Q}$ ($3 f_1 - \frac{8}{3} f_2 = 0$), collapsing back to Bennett's exponent $\lambda = 0.787$.
 
-### 📁 `numerical_validation/` (High-Throughput Streaming Engines)
-* **[`parallel_verifier.cpp`](./numerical_validation/parallel_verifier.cpp):** Multi-threaded C++ engine utilizing unrolled 128-bit limb arithmetic.
-* **[`verification_records/`](./numerical_validation/verification_records/):** Certified checkpoint logs verifying zero exceptions up to $k = 25{,}000{,}000$.
+### 📁 `verification/` (Top-Level Engine)
+* *Note:* The certified streaming C++ verification engine, Python reference verifier, and records up to $k = 50{,}000{,}000$ have been elevated to the top-level [`../verification/`](../verification/) directory.
 
 ### 📁 `miscellaneous/`
-* **Plots:** High-resolution figures illustrating danger envelopes, Padé error decay, and empirical safety margins.
+* **[`investigate_all_4_architectures.py`](./miscellaneous/investigate_all_4_architectures.py):** Comparative analysis across all four mathematical architectures (2-adic, Frey, Nesterenko, Hermite–Padé).
+* **Plots & Visualizations:** High-resolution figures illustrating danger envelopes, Padé error decay, and empirical safety margins.

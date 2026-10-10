@@ -312,7 +312,7 @@ public:
         std::cout << "Chunks Processed:    " << chunk_history.size() << "\n\n";
 
         print_statistics();
-        export_records_json("explorations/numerical_validation/verification_records/parallel_run.json", total_time);
+        export_records_json("verification/records/parallel_run.json", total_time);
     }
 
     void print_statistics() {

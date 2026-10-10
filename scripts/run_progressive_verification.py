@@ -19,8 +19,8 @@ MILESTONES = [
 ]
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXE_PATH = os.path.join(REPO_ROOT, "explorations", "numerical_validation", "parallel_verifier.exe")
-RECORDS_DIR = os.path.join(REPO_ROOT, "explorations", "numerical_validation", "verification_records")
+EXE_PATH = os.path.join(REPO_ROOT, "verification", "parallel_verifier.exe")
+RECORDS_DIR = os.path.join(REPO_ROOT, "verification", "records")
 PARALLEL_RUN_JSON = os.path.join(RECORDS_DIR, "parallel_run.json")
 
 def generate_markdown_summary(data: dict, label: str, target: int, elapsed_sec: float) -> str:
