@@ -1,0 +1,32 @@
+{
+  "start_k": 1,
+  "end_k": 100000,
+  "total_tested": 100000,
+  "threads": 8,
+  "total_violations": 0,
+  "total_time_seconds": 0.504652,
+  "throughput_k_per_sec": 198156,
+  "extreme_records": [
+    {"k": 49304, "leading_ones": 17, "distance_to_one": 7.36405e-06, "fractional_part": 0.999993, "effective_alpha": 0.000345835},
+    {"k": 49305, "leading_ones": 16, "distance_to_one": 1.10461e-05, "fractional_part": 0.999989, "effective_alpha": 0.000333964},
+    {"k": 14, "leading_ones": 3, "distance_to_one": 0.0707397, "fractional_part": 0.92926, "effective_alpha": 0.272953},
+    {"k": 15, "leading_ones": 3, "distance_to_one": 0.10611, "fractional_part": 0.89389, "effective_alpha": 0.215758},
+    {"k": 18, "leading_ones": 3, "distance_to_one": 0.10812, "fractional_part": 0.89188, "effective_alpha": 0.178294},
+    {"k": 16, "leading_ones": 2, "distance_to_one": 0.159164, "fractional_part": 0.840836, "effective_alpha": 0.165713},
+    {"k": 19, "leading_ones": 2, "distance_to_one": 0.16218, "fractional_part": 0.83782, "effective_alpha": 0.138123},
+    {"k": 12, "leading_ones": 1, "distance_to_one": 0.253662, "fractional_part": 0.746338, "effective_alpha": 0.164918},
+    {"k": 10, "leading_ones": 1, "distance_to_one": 0.334961, "fractional_part": 0.665039, "effective_alpha": 0.157794},
+    {"k": 8, "leading_ones": 1, "distance_to_one": 0.371094, "fractional_part": 0.628906, "effective_alpha": 0.178768},
+    {"k": 13, "leading_ones": 1, "distance_to_one": 0.380493, "fractional_part": 0.619507, "effective_alpha": 0.107235},
+    {"k": 5, "leading_ones": 1, "distance_to_one": 0.40625, "fractional_part": 0.59375, "effective_alpha": 0.259912},
+    {"k": 1, "leading_ones": 1, "distance_to_one": 0.5, "fractional_part": 0.5, "effective_alpha": 1},
+    {"k": 11, "leading_ones": 0, "distance_to_one": 0.502441, "fractional_part": 0.497559, "effective_alpha": 0.0902702},
+    {"k": 9, "leading_ones": 0, "distance_to_one": 0.556641, "fractional_part": 0.443359, "effective_alpha": 0.0939091},
+    {"k": 6, "leading_ones": 0, "distance_to_one": 0.609375, "fractional_part": 0.390625, "effective_alpha": 0.1191},
+    {"k": 3, "leading_ones": 0, "distance_to_one": 0.625, "fractional_part": 0.375, "effective_alpha": 0.226024},
+    {"k": 17, "leading_ones": 0, "distance_to_one": 0.738747, "fractional_part": 0.261253, "effective_alpha": 0.025697},
+    {"k": 2, "leading_ones": 0, "distance_to_one": 0.75, "fractional_part": 0.25, "effective_alpha": 0.207519},
+    {"k": 7, "leading_ones": 0, "distance_to_one": 0.914062, "fractional_part": 0.0859375, "effective_alpha": 0.0185193},
+    {"k": 4, "leading_ones": 0, "distance_to_one": 0.9375, "fractional_part": 0.0625, "effective_alpha": 0.0232774}
+  ]
+}

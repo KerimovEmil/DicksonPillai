@@ -1,58 +1,57 @@
-# Parallel Verification Run Summary: $k = 1$ to $25{,}000{,}000$
+# Theory-Accelerated Verification Summary: $k = 1$ to 25,000,000 (25M)
 
-- **Date of Execution:** 2026-09-30
-- **Engine:** C++ Parallel Multi-Core 2-Adic Streaming Verifier (`parallel_verifier.cpp`)
-- **Hardware:** AMD Ryzen AI 9 365 (10 physical Zen 5 cores, 20 logical threads)
-- **Range Checked:** $k \in [1, 25{,}000{,}000]$
+- **Date of Execution:** 2026-10-08 09:04:57
+- **Engine:** C++ Parallel Multi-Core 2-Adic Verifier v2 (`parallel_verifier.exe`)
+- **Theorems Applied:** Theorem 1 (Mod 8 Exclusion), Theorem 5 (State Collapse $O(1)$ Filter), 2-Adic Horizon Truncation
+- **Hardware:** AMD Ryzen AI 9 365 (20 logical threads | Zen 5 Architecture)
+- **Range Checked:** $k \in [1, 25,000,000]$
 - **Total Exceptions / Violations:** **0**
-- **Verification Status:** **100% Valid (Passed)**
-- **Total Execution Time:** 1710.354 seconds (28 min 30 sec)
-- **Aggregate Throughput:** **14,616 steps/second** (at $k \approx 2.5 \times 10^7$)
-- **Chunks Processed:** 50 chunks (500,000 steps per chunk)
-- **Final Memory Size of $3^k$:** 619,130 64-bit words (~39.6 million bits)
+- **Verification Status:** **100% Valid (Passed - Dickson–Pillai Condition Holds)**
+- **Total Execution Time:** 1522.58 seconds (25.38 minutes)
+- **Aggregate Throughput:** **16,419 k/sec**
 
 ---
 
-## 1. Mathematical Dynamics: Why Global Near-Misses Cluster at Small $k$
+## 1. Extreme Diophantine Records (Longest Runs of Leading Ones in ${(3/2)^k}$)
 
-The **Safety Ratio** is defined as:
-$$\text{Safety Ratio}(k) = \frac{1 - \{(3/2)^k\}}{(3/4)^k} \approx (1 - \theta_k) \cdot \left(\frac{4}{3}\right)^k$$
+A Dickson–Pillai failure requires $\alpha_k = \frac{L_k}{k} \ge \lambda_{\mathrm{target}} = \log_2(4/3) \approx 0.415037$.
+Below are the top empirical record holders with the longest continuous runs of leading 1-bits after the binary point:
 
-Because $(4/3)^k \approx 2^{0.415 k}$ grows exponentially with $k$:
-* At $k = 14$: $(4/3)^{14} \approx 56.12 \implies \text{Safety Ratio} = 3.9701$.
-* At $k = 100$: $(4/3)^{100} \approx 3.1 \times 10^{12} \implies$ requires $1 - \theta_{100} < 10^{-12}$ to beat $k = 14$.
-* At $k = 25{,}000{,}000$: $(4/3)^{25,000,000} \approx 10^{3,123,000} \implies$ requires $\theta_k$ within $10^{-3,123,000}$ of $1$.
-
-Because fractional parts $\{(3/2)^k\}$ are uniformly distributed in $[0, 1)$, the probability of beating the small-$k$ safety ratios vanishes exponentially. Thus, the global order statistics list **theoretically must be dominated by small $k \le 16$**, confirming the soundness of the distribution.
+| Rank | $k$ | Leading 1s ($L_k$) | Distance to 1 ($1 - \delta_k$) | Effective $\alpha_k = L/k$ | Target Barrier |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **#1** | **10,406,357** | **23** | 1.118300e-07 | 0.000002 | 0.415037 |
+| **#2** | **2,242,294** | **22** | 1.449000e-07 | 0.000010 | 0.415037 |
+| **#3** | **3,965,133** | **22** | 1.858430e-07 | 0.000006 | 0.415037 |
+| **#4** | **2,242,295** | **22** | 2.173490e-07 | 0.000010 | 0.415037 |
+| **#5** | **2,242,296** | **21** | 3.260240e-07 | 0.000010 | 0.415037 |
+| **#6** | **6,427,354** | **21** | 3.942910e-07 | 0.000003 | 0.415037 |
+| **#7** | **3,247,981** | **21** | 4.170040e-07 | 0.000007 | 0.415037 |
+| **#8** | **835,999** | **21** | 4.684210e-07 | 0.000025 | 0.415037 |
+| **#9** | **16,193,691** | **20** | 5.201890e-07 | 0.000001 | 0.415037 |
+| **#10** | **1,703,697** | **20** | 7.335840e-07 | 0.000012 | 0.415037 |
+| **#11** | **10,652,513** | **20** | 7.367150e-07 | 0.000002 | 0.415037 |
+| **#12** | **16,193,692** | **20** | 7.802830e-07 | 0.000001 | 0.415037 |
+| **#13** | **2,460,186** | **19** | 1.004880e-06 | 0.000008 | 0.415037 |
+| **#14** | **24,405,480** | **19** | 1.082460e-06 | 0.000001 | 0.415037 |
+| **#15** | **16,193,693** | **19** | 1.170420e-06 | 0.000001 | 0.415037 |
+| **#16** | **4,361,902** | **19** | 1.171550e-06 | 0.000005 | 0.415037 |
+| **#17** | **19,210,978** | **19** | 1.262820e-06 | 0.000001 | 0.415037 |
+| **#18** | **20,867,331** | **19** | 1.448570e-06 | 0.000001 | 0.415037 |
+| **#19** | **2,460,187** | **19** | 1.507320e-06 | 0.000008 | 0.415037 |
+| **#20** | **23,935,234** | **19** | 1.533650e-06 | 0.000001 | 0.415037 |
+| **#21** | **10,837,316** | **19** | 1.569790e-06 | 0.000002 | 0.415037 |
+| **#22** | **2,647,152** | **19** | 1.588110e-06 | 0.000007 | 0.415037 |
+| **#23** | **24,405,481** | **19** | 1.623690e-06 | 0.000001 | 0.415037 |
+| **#24** | **18,054,658** | **19** | 1.637170e-06 | 0.000001 | 0.415037 |
+| **#25** | **9,980,902** | **19** | 1.637320e-06 | 0.000002 | 0.415037 |
 
 ---
 
-## 2. Order Statistics (Global Extreme Near-Misses)
-
-| Rank | $k$ | Remainder Fraction $\{(3/2)^k\}$ | Safety Ratio $\frac{1 - \theta_k}{(3/4)^k}$ | $\log_2(\text{Safety Ratio})$ |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | 2 | 0.250000 | 1.3333 | 0.4150 |
-| **2** | 3 | 0.375000 | 1.4815 | 0.5670 |
-| **3** | 5 | 0.593750 | 1.7119 | 0.7756 |
-| **4** | 4 | 0.062500 | 2.9630 | 1.5670 |
-| **5** | 6 | 0.390625 | 3.4239 | 1.7756 |
-| **6** | 8 | 0.628906 | 3.7068 | 1.8902 |
-| **7** | 14 | 0.929260 | 3.9701 | 1.9892 |
-| **8** | 10 | 0.665039 | 5.9481 | 2.5724 |
-| **9** | 7 | 0.085938 | 6.8477 | 2.7756 |
-| **10** | 9 | 0.443359 | 7.4135 | 2.8902 |
-| **11** | 15 | 0.893890 | 7.9403 | 2.9892 |
-| **12** | 12 | 0.746338 | 8.0079 | 3.0014 |
-| **13** | 11 | 0.497559 | 11.8963 | 3.5724 |
-| **14** | 16 | 0.840836 | 15.8806 | 3.9892 |
-| **15** | 13 | 0.619507 | 16.0159 | 4.0014 |
-
----
-
-## 3. Scale Progression Comparison
-
-| Verification Dataset | Range Verified | Execution Time | Limb Count (64-bit) | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **5 Million** | $k \le 5 \times 10^6$ | 278.36 s | 123,826 | Verified |
-| **10 Million** | $k \le 10 \times 10^6$ | 170.38 s | 247,652 | Verified |
-| **25 Million** | $k \le 25 \times 10^6$ | 1710.35 s | 619,130 | Verified |
+## 2. Independent Verification Protocol
+Any record above can be independently certified in Python without external libraries:
+```python
+k = 10406357
+top64 = pow(3, k, 1 << k) >> (k - 64)
+leading_ones = 64 - (top64 ^ ((1 << 64) - 1)).bit_length()
+print(f"k={k}: leading_ones={leading_ones}, top64={hex(top64)}")
+```

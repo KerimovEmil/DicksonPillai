@@ -348,7 +348,65 @@ theorem genesis_case_zero_impossible (D_prev D_curr q_prev q_curr : Int)
     q_curr ≤ D_curr := by
   omega
 
-/-! ## 6B. Quadratic Defect Halving and Modulo 64 Freezing (k ≡ 2 mod 4) -/
+/-! ## 6B. Minimal Failure Upper Record Confinement (OEIS A153663) -/
+
+/-- Inversion equivalence: A defect inequality D_k * 2^m < D_m * 2^k is equivalent
+    to the remainder (fractional part) inequality r_m * 2^k < r_k * 2^m. -/
+theorem defect_lt_iff_remainder_gt (D_k D_m r_k r_m two_k two_m : Int)
+    (hDk : D_k = two_k - r_k) (hDm : D_m = two_m - r_m) :
+    (D_k * two_m < D_m * two_k) ↔ (r_m * two_k < r_k * two_m) := by
+  constructor
+  · intro h
+    rw [hDk, hDm] at h
+    have h1 : (two_k - r_k) * two_m = two_k * two_m - r_k * two_m := Int.sub_mul two_k r_k two_m
+    have h2 : (two_m - r_m) * two_k = two_m * two_k - r_m * two_k := Int.sub_mul two_m r_m two_k
+    rw [h1, h2] at h
+    have hcomm : two_k * two_m = two_m * two_k := Int.mul_comm two_k two_m
+    rw [hcomm] at h
+    omega
+  · intro h
+    rw [hDk, hDm]
+    have h1 : (two_k - r_k) * two_m = two_k * two_m - r_k * two_m := Int.sub_mul two_k r_k two_m
+    have h2 : (two_m - r_m) * two_k = two_m * two_k - r_m * two_k := Int.sub_mul two_m r_m two_k
+    rw [h1, h2]
+    have hcomm : two_k * two_m = two_m * two_k := Int.mul_comm two_k two_m
+    rw [hcomm]
+    omega
+
+/-- Theorem: Any minimal counterexample k to the Dickson-Pillai condition
+    forces the remainder r_k / 2^k to strictly exceed all safe predecessors m with q_k / 2^k ≤ q_m / 2^m.
+    Consequently, the minimal counterexample MUST be an upper record in OEIS A153663. -/
+theorem minimal_failure_forces_record
+    (D_k D_m q_k q_m r_k r_m two_k two_m : Int)
+    (h_fail : D_k < q_k)
+    (h_safe : q_m ≤ D_m)
+    (h_ratio : q_k * two_m ≤ q_m * two_k)
+    (h_pos_m : 0 < two_m)
+    (h_pos_k : 0 < two_k)
+    (hDk : D_k = two_k - r_k)
+    (hDm : D_m = two_m - r_m) :
+    r_m * two_k < r_k * two_m := by
+  have h1 : D_k * two_m < q_k * two_m := by
+    have hdiff : q_k - D_k > 0 := by omega
+    have hmul : (q_k - D_k) * two_m > 0 := Int.mul_pos hdiff h_pos_m
+    have hsub : (q_k - D_k) * two_m = q_k * two_m - D_k * two_m := Int.sub_mul q_k D_k two_m
+    rw [hsub] at hmul
+    omega
+  have h2 : q_m * two_k ≤ D_m * two_k := by
+    have hdiff : D_m - q_m ≥ 0 := by omega
+    have hmul : (D_m - q_m) * two_k ≥ 0 := by
+      exact Int.mul_nonneg hdiff (by omega)
+    have hsub : (D_m - q_m) * two_k = D_m * two_k - q_m * two_k := Int.sub_mul D_m q_m two_k
+    rw [hsub] at hmul
+    omega
+  have h_chain : D_k * two_m < D_m * two_k := by
+    calc
+      D_k * two_m < q_k * two_m := h1
+      _ ≤ q_m * two_k := h_ratio
+      _ ≤ D_m * two_k := h2
+  exact (defect_lt_iff_remainder_gt D_k D_m r_k r_m two_k two_m hDk hDm).mp h_chain
+
+/-! ## 6C. Quadratic Defect Halving and Modulo 64 Freezing (k ≡ 2 mod 4) -/
 
 /-- Quadratic Defect Halving Identity:
     For even k = 2 * u, expanding 3^k = (3^u)^2 yields
@@ -601,6 +659,8 @@ theorem dp_condition_all_le_10 (k : Nat) (h1 : 1 ≤ k) (h2 : k ≤ 10) :
 #print axioms T_failure_step
 #print axioms genesis_case_neg1_impossible
 #print axioms genesis_case_zero_impossible
+#print axioms defect_lt_iff_remainder_gt
+#print axioms minimal_failure_forces_record
 #print axioms quadratic_defect_identity
 #print axioms quadratic_halving_divisible
 #print axioms halving_k6

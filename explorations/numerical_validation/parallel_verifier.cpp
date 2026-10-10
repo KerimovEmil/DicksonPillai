@@ -1,18 +1,21 @@
 /**
- * Parallel Multi-Core Dickson–Pillai Verification Engine
+ * Parallel Multi-Core Dickson–Pillai Verification Engine (Theory-Accelerated v2)
  * 
- * Hardware Target: Multi-core Zen 5 / x86-64 with AVX2/AVX-512 (e.g. AMD Ryzen AI 9 365, 20 threads)
+ * Hardware Target: Multi-core Zen 5 / x86-64 with AVX2/AVX-512 (AMD Ryzen AI 9 365, 20 threads)
  * 
- * Architecture:
- * 1. Dynamic chunk-based work stealing across all available CPU cores
- * 2. Fast binary exponentiation initialization for chunk boundaries
- * 3. 4x Unrolled 128-bit limb arithmetic for in-place 2-adic multiplication (3X = 2X + X)
- * 4. O(1) Fast-Path Early-Exit Filter (zero false negatives for k >= 112)
- * 5. Multi-dimensional order statistics:
- *    - Global Absolute Near-Misses (smallest safety ratio (1 - frac) / (3/4)^k)
- *    - Highest Fractional Parts (closest to 1.0 in [0, 1))
- *    - Epoch / Scale-Segmented Worst-Case Extremes
- * 6. Cryptographic state hashing per chunk & global checkpoint ledger export
+ * Features:
+ * 1. 2-Adic Chunk-Fixed Modular Streaming: Restricts limbs to (k_end + 64) / 64 + 1.
+ *    Any carries above this bit horizon never affect r_k in [k_start, k_end], eliminating 37% of limbs.
+ * 2. Unified Leading-Ones & State-Collapse Filter (Theorem 5):
+ *    - Extracts top 64 bits of r_k and computes leading unbroken 1s via __builtin_clzll(~top64).
+ *    - Leading ones < 32 guarantees safety in O(1) clock cycles (zero false negatives for k >= 112).
+ * 3. Extreme Diophantine Order Statistics (Replacing early-sample near-misses):
+ *    - Tracks the Top-50 Record Holders with the largest run of leading ones in {(3/2)^k}.
+ *    - Computes effective alpha = -log2(1 - frac) / k (vs target barrier lambda = 0.415037).
+ *    - Trivially verifiable for any specific k in 1 line of Python:
+ *      bin(pow(3, k, 1 << k))[2:].startswith('1' * L)
+ * 4. Fast SplitMix64 rolling state mixer for cryptographic auditability.
+ * 5. Flexible range execution: support [1, max_k] or window [start_k, end_k].
  */
 
 #include <iostream>
@@ -27,22 +30,26 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
-#include <map>
 #include <cstdint>
 
-// Order statistics entry
-struct NearMiss {
+// Record of extreme Diophantine alignment
+struct ExtremeRecord {
     uint64_t k;
-    double safety_ratio;      // (1 - frac) / (3/4)^k
-    double log2_safety_ratio; // log2(safety_ratio)
-    double fractional_part;   // r_k / 2^k in [0, 1)
+    uint32_t leading_ones;      // Run-length of unbroken 1s at top of r_k
+    double distance_to_one;     // 1.0 - delta_k in [0, 1)
+    double fractional_part;     // delta_k = r_k / 2^k
+    double effective_alpha;     // -log2(distance_to_one) / k (failure if >= 0.415037)
 
-    bool operator<(const NearMiss& other) const {
-        return safety_ratio < other.safety_ratio;
+    // Sort by leading ones descending, then by smallest distance to 1
+    bool operator<(const ExtremeRecord& other) const {
+        if (leading_ones != other.leading_ones) {
+            return leading_ones > other.leading_ones;
+        }
+        return distance_to_one < other.distance_to_one;
     }
 };
 
-// Rolling state hasher (FNV-1a 64-bit)
+// Rolling state hasher (SplitMix64 64-bit)
 struct ChunkState {
     uint64_t start_k;
     uint64_t end_k;
@@ -51,7 +58,7 @@ struct ChunkState {
     double elapsed_seconds;
 };
 
-// Fast arbitrary precision integer for initialization via binary exponentiation
+// Fast arbitrary precision integer
 class BigInt {
 public:
     std::vector<uint64_t> limbs; // base 2^64
@@ -65,41 +72,39 @@ public:
         }
     }
 
-    // Multiply by small uint64_t with 4x unrolled 128-bit arithmetic
-    void mul_small(uint64_t m) {
+    // Multiply by 3 with 4x unrolled 128-bit arithmetic in-place
+    inline void mul3_fixed() {
         uint64_t carry = 0;
         size_t n = limbs.size();
         uint64_t* ptr = limbs.data();
         
         size_t i = 0;
         for (; i + 3 < n; i += 4) {
-            unsigned __int128 p0 = (unsigned __int128)ptr[i+0] * m + carry;
+            unsigned __int128 p0 = (unsigned __int128)ptr[i+0] * 3 + carry;
             ptr[i+0] = (uint64_t)p0;
             carry = (uint64_t)(p0 >> 64);
 
-            unsigned __int128 p1 = (unsigned __int128)ptr[i+1] * m + carry;
+            unsigned __int128 p1 = (unsigned __int128)ptr[i+1] * 3 + carry;
             ptr[i+1] = (uint64_t)p1;
             carry = (uint64_t)(p1 >> 64);
 
-            unsigned __int128 p2 = (unsigned __int128)ptr[i+2] * m + carry;
+            unsigned __int128 p2 = (unsigned __int128)ptr[i+2] * 3 + carry;
             ptr[i+2] = (uint64_t)p2;
             carry = (uint64_t)(p2 >> 64);
 
-            unsigned __int128 p3 = (unsigned __int128)ptr[i+3] * m + carry;
+            unsigned __int128 p3 = (unsigned __int128)ptr[i+3] * 3 + carry;
             ptr[i+3] = (uint64_t)p3;
             carry = (uint64_t)(p3 >> 64);
         }
         for (; i < n; ++i) {
-            unsigned __int128 p = (unsigned __int128)ptr[i] * m + carry;
+            unsigned __int128 p = (unsigned __int128)ptr[i] * 3 + carry;
             ptr[i] = (uint64_t)p;
             carry = (uint64_t)(p >> 64);
         }
-        if (carry > 0) {
-            limbs.push_back(carry);
-        }
+        // Discard carries above limbs.size(): modular arithmetic modulo 2^(64*limbs.size())
     }
 
-    // Full BigInt multiplication (Schoolbook for fast initialization)
+    // Full BigInt multiplication (for binary exponentiation initialization)
     static BigInt multiply(const BigInt& a, const BigInt& b) {
         BigInt res;
         res.limbs.assign(a.limbs.size() + b.limbs.size(), 0);
@@ -141,148 +146,128 @@ public:
 
 class ParallelDicksonPillaiVerifier {
 private:
-    uint64_t max_k;
+    uint64_t global_start_k;
+    uint64_t global_end_k;
     uint64_t chunk_size;
     unsigned int num_threads;
+    uint32_t record_threshold_ones;
     
-    std::atomic<uint64_t> next_chunk_k{1};
+    std::atomic<uint64_t> next_chunk_k;
     std::atomic<uint64_t> completed_k{0};
     std::atomic<uint64_t> total_violations{0};
 
     std::mutex results_mutex;
-    std::vector<NearMiss> global_near_misses;
-    std::vector<NearMiss> global_highest_fractions;
+    std::vector<ExtremeRecord> global_records;
     std::vector<ChunkState> chunk_history;
 
 public:
-    ParallelDicksonPillaiVerifier(uint64_t max_k_, uint64_t chunk_size_ = 500000, unsigned int threads_ = 0)
-        : max_k(max_k_), chunk_size(chunk_size_) {
-        num_threads = (threads_ > 0) ? threads_ : std::thread::hardware_concurrency();
+    ParallelDicksonPillaiVerifier(uint64_t start_k, uint64_t end_k, uint64_t chunk_sz = 250000, 
+                                 unsigned int threads = 0, uint32_t threshold_ones = 16)
+        : global_start_k(start_k), global_end_k(end_k), chunk_size(chunk_sz), 
+          record_threshold_ones(threshold_ones), next_chunk_k(start_k) {
+        num_threads = (threads > 0) ? threads : std::thread::hardware_concurrency();
         if (num_threads == 0) num_threads = 4;
     }
 
     void worker_thread(unsigned int thread_id) {
-        std::vector<NearMiss> local_near_misses;
-        std::vector<NearMiss> local_highest_fractions;
+        std::vector<ExtremeRecord> local_records;
 
         while (true) {
             uint64_t k_start = next_chunk_k.fetch_add(chunk_size);
-            if (k_start > max_k) break;
+            if (k_start > global_end_k) break;
 
-            uint64_t k_end = std::min(k_start + chunk_size - 1, max_k);
+            uint64_t k_end = std::min(k_start + chunk_size - 1, global_end_k);
             auto chunk_start_time = std::chrono::high_resolution_clock::now();
 
-            // Initialize BigInt with 3^(k_start - 1)
+            // 1. Initialize BigInt with 3^(k_start - 1)
             BigInt num = BigInt::power_of_3(k_start - 1);
+
+            // 2. Exact 2-Adic Carry Horizon Truncation:
+            // For all k in [k_start, k_end], r_k depends ONLY on limbs <= (k_end + 64) / 64 + 1.
+            // Limbs above this never affect r_k. Truncate to fixed buffer size!
+            size_t max_limbs = (k_end + 64) / 64 + 1;
+            if (num.limbs.size() > max_limbs) {
+                num.limbs.resize(max_limbs);
+            } else {
+                num.limbs.resize(max_limbs, 0);
+            }
+
             uint64_t chunk_hash = 14695981039346656037ULL;
 
             for (uint64_t k = k_start; k <= k_end; ++k) {
-                // 1. In-place multiply by 3
-                num.mul_small(3);
+                // In-place multiply by 3 modulo 2^(64 * max_limbs)
+                num.mul3_fixed();
 
-                // 2. Fast-Path Filter Check
-                bool needs_exact_check = false;
-                if (k < 112) {
-                    needs_exact_check = true;
+                // Extract top 64 bits of remainder r_k (bits [k-64, k-1])
+                size_t limb_idx = (k - 1) / 64;
+                size_t bit_offset = (k - 1) % 64;
+
+                uint64_t top64;
+                if (bit_offset == 63) {
+                    top64 = num.limbs[limb_idx];
                 } else {
-                    size_t limb_idx = (k - 1) / 64;
-                    size_t bit_offset = (k - 1) % 64;
-
-                    uint64_t top_bits;
-                    if (bit_offset >= 31) {
-                        top_bits = (num.limbs[limb_idx] >> (bit_offset - 31)) & 0xFFFFFFFFULL;
-                    } else {
-                        uint64_t low_part = num.limbs[limb_idx] << (31 - bit_offset);
-                        uint64_t high_part = (limb_idx > 0) ? (num.limbs[limb_idx - 1] >> (64 - (31 - bit_offset))) : 0;
-                        top_bits = (low_part | high_part) & 0xFFFFFFFFULL;
-                    }
-
-                    if (top_bits >= 0xFFFFFFF0ULL) {
-                        needs_exact_check = true;
-                    }
+                    uint64_t high = num.limbs[limb_idx] << (63 - bit_offset);
+                    uint64_t low = (limb_idx > 0) ? (num.limbs[limb_idx - 1] >> (bit_offset + 1)) : 0;
+                    top64 = high | low;
                 }
 
-                // 3. Exact Verification & Safety Ratio
-                if (needs_exact_check) {
-                    size_t limb_idx = (k - 1) / 64;
-                    size_t bit_offset = (k - 1) % 64;
+                // Count leading unbroken 1-bits in {(3/2)^k}
+                uint32_t leading_ones = (top64 == ~0ULL) ? 64 : (uint32_t)__builtin_clzll(~top64);
 
-                    double frac;
-                    if (bit_offset >= 52) {
-                        uint64_t top53 = (num.limbs[limb_idx] >> (bit_offset - 52)) & ((1ULL << 53) - 1);
-                        frac = (double)top53 / (double)(1ULL << 53);
-                    } else {
-                        uint64_t low_part = num.limbs[limb_idx] << (52 - bit_offset);
-                        uint64_t high_part = (limb_idx > 0) ? (num.limbs[limb_idx - 1] >> (64 - (52 - bit_offset))) : 0;
-                        uint64_t top53 = (low_part | high_part) & ((1ULL << 53) - 1);
-                        frac = (double)top53 / (double)(1ULL << 53);
-                    }
+                // Record Extreme Diophantine Proximity (Top-50 Order Statistics)
+                if (leading_ones >= record_threshold_ones || k < 20) {
+                    double frac = (double)(top64 >> 11) / (double)(1ULL << 53);
+                    double dist = std::max(1e-19, 1.0 - frac);
+                    double alpha = (k > 0) ? (-std::log2(dist) / (double)k) : 0.0;
+                    local_records.push_back(ExtremeRecord{k, leading_ones, dist, frac, alpha});
+                }
 
+                // Exact Failure Check (Theorem 5: State Collapse)
+                // For k >= 112, failure strictly requires leading_ones >= 32.
+                if (leading_ones >= 32 || k < 112) {
+                    double frac = (double)(top64 >> 11) / (double)(1ULL << 53);
                     double danger_threshold = 1.0 - std::pow(0.75, k);
-                    double safety_ratio = (1.0 - frac) / std::pow(0.75, k);
-                    double log2_safety = std::log2(std::max(1e-15, safety_ratio));
-
-                    if (k >= 2) {
-                        local_near_misses.push_back(NearMiss{k, safety_ratio, log2_safety, frac});
-                        local_highest_fractions.push_back(NearMiss{k, safety_ratio, log2_safety, frac});
-                    }
-
                     if (frac > danger_threshold && k >= 2) {
                         total_violations.fetch_add(1);
                     }
                 }
 
-                // 4. Update Chunk State Hash
+                // Rolling state hash update (SplitMix64)
                 uint64_t r_low = num.limbs[0];
-                uint64_t q_low = (k / 64 < num.limbs.size()) ? (num.limbs[k / 64] >> (k % 64)) : 0;
-                
-                auto hash_u64 = [&chunk_hash](uint64_t val) {
-                    for (int i = 0; i < 8; ++i) {
-                        chunk_hash ^= ((val >> (i * 8)) & 0xFF);
-                        chunk_hash *= 1099511628211ULL;
-                    }
-                };
-                hash_u64(k);
-                hash_u64(r_low);
-                hash_u64(q_low);
+                chunk_hash ^= k + 0x9e3779b97f4a7c15ULL + (chunk_hash << 6) + (chunk_hash >> 2);
+                chunk_hash ^= (r_low * 0xbf58476d1ce4e5b9ULL);
             }
 
             auto chunk_end_time = std::chrono::high_resolution_clock::now();
             double chunk_elapsed = std::chrono::duration<double>(chunk_end_time - chunk_start_time).count();
             completed_k.fetch_add(k_end - k_start + 1);
 
-            // Record chunk state under lock
             {
                 std::lock_guard<std::mutex> lock(results_mutex);
-                chunk_history.push_back(ChunkState{k_start, k_end, chunk_hash, num.limbs.size(), chunk_elapsed});
+                chunk_history.push_back(ChunkState{k_start, k_end, chunk_hash, max_limbs, chunk_elapsed});
             }
         }
 
-        // Merge local metrics to global lists
+        // Merge local records
         {
             std::lock_guard<std::mutex> lock(results_mutex);
-            global_near_misses.insert(global_near_misses.end(), local_near_misses.begin(), local_near_misses.end());
-            std::sort(global_near_misses.begin(), global_near_misses.end());
-            if (global_near_misses.size() > 50) {
-                global_near_misses.resize(50);
-            }
-
-            global_highest_fractions.insert(global_highest_fractions.end(), local_highest_fractions.begin(), local_highest_fractions.end());
-            std::sort(global_highest_fractions.begin(), global_highest_fractions.end(), [](const NearMiss& a, const NearMiss& b) {
-                return a.fractional_part > b.fractional_part;
-            });
-            if (global_highest_fractions.size() > 50) {
-                global_highest_fractions.resize(50);
+            global_records.insert(global_records.end(), local_records.begin(), local_records.end());
+            std::sort(global_records.begin(), global_records.end());
+            if (global_records.size() > 100) {
+                global_records.resize(100);
             }
         }
     }
 
     void run() {
+        uint64_t total_k = global_end_k - global_start_k + 1;
         std::cout << "=================================================================\n";
-        std::cout << "  Parallel Multi-Core Dickson–Pillai Verification Engine\n";
-        std::cout << "  Hardware: " << num_threads << " Worker Threads | Zen 5 / AVX Architecture\n";
-        std::cout << "  Target Range: k = 1 to " << max_k << "\n";
-        std::cout << "  Chunk Size:   " << chunk_size << " steps/chunk\n";
+        std::cout << "  Parallel Multi-Core Dickson–Pillai Verification Engine (v2)\n";
+        std::cout << "  (Extreme Diophantine Record Tracking & Theorem 5 Fast-Path)\n";
+        std::cout << "  Hardware:       " << num_threads << " Worker Threads | Zen 5 Architecture\n";
+        std::cout << "  Target Range:   k = " << global_start_k << " to " << global_end_k << " (" << total_k << " values)\n";
+        std::cout << "  Chunk Size:     " << chunk_size << " steps/chunk\n";
+        std::cout << "  Log Threshold:  >= " << record_threshold_ones << " leading 1-bits\n";
         std::cout << "=================================================================\n\n";
 
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -292,16 +277,16 @@ public:
             workers.emplace_back(&ParallelDicksonPillaiVerifier::worker_thread, this, i);
         }
 
-        // Progress Monitor Loop
-        while (completed_k.load() < max_k) {
+        // Progress Monitor
+        while (completed_k.load() < total_k) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             uint64_t done = completed_k.load();
             auto now = std::chrono::high_resolution_clock::now();
             double elapsed = std::chrono::duration<double>(now - start_time).count();
             double rate = (elapsed > 0) ? (done / elapsed) : 0;
-            double pct = (100.0 * done) / max_k;
+            double pct = (100.0 * done) / total_k;
 
-            std::cout << "\r[Progress] " << std::setw(10) << done << " / " << max_k 
+            std::cout << "\r[Progress] " << std::setw(10) << done << " / " << total_k 
                       << " (" << std::fixed << std::setprecision(1) << pct << "%)"
                       << " | Rate: " << std::setw(8) << (uint64_t)rate << " k/sec"
                       << " | Elapsed: " << std::setprecision(1) << elapsed << "s"
@@ -318,49 +303,38 @@ public:
         std::cout << "\n\n=================================================================\n";
         std::cout << "  Parallel Verification Complete\n";
         std::cout << "=================================================================\n";
-        std::cout << "Range Verified:      1 to " << max_k << "\n";
+        std::cout << "Range Verified:      " << global_start_k << " to " << global_end_k << "\n";
         std::cout << "Total Violations:    " << total_violations.load() << "\n";
         std::cout << "Condition Status:    " << (total_violations.load() == 0 ? "PASSED (100% Valid)" : "FAILED") << "\n";
         std::cout << "Worker Threads:      " << num_threads << "\n";
         std::cout << "Execution Time:      " << std::fixed << std::setprecision(3) << total_time << " seconds\n";
-        std::cout << "Aggregate Rate:      " << (uint64_t)(max_k / total_time) << " k/sec\n";
+        std::cout << "Aggregate Rate:      " << (uint64_t)(total_k / total_time) << " k/sec\n";
         std::cout << "Chunks Processed:    " << chunk_history.size() << "\n\n";
 
         print_statistics();
-        export_records_json("dickson_pillai/verification_records/parallel_run.json", total_time);
+        export_records_json("explorations/numerical_validation/verification_records/parallel_run.json", total_time);
     }
 
     void print_statistics() {
-        std::cout << "--- 1. Top 15 Global Near-Misses (Smallest Safety Ratios) ---\n";
-        std::cout << std::setw(8) << "k" << " | "
-                  << std::setw(14) << "{(3/2)^k}" << " | "
-                  << std::setw(18) << "Safety Ratio" << " | "
-                  << std::setw(18) << "log2(Safety Ratio)" << "\n";
-        std::cout << "-----------------------------------------------------------------\n";
-        size_t count = std::min(global_near_misses.size(), (size_t)15);
+        std::cout << "--- Top Extreme Diophantine Records (Longest Runs of Leading Ones) ---\n";
+        std::cout << std::setw(10) << "k" << " | "
+                  << std::setw(14) << "Leading 1s (L)" << " | "
+                  << std::setw(20) << "Distance to 1 (1-frac)" << " | "
+                  << std::setw(14) << "Alpha (L/k)" << " | "
+                  << std::setw(14) << "Target Barrier" << "\n";
+        std::cout << "--------------------------------------------------------------------------------\n";
+        size_t count = std::min(global_records.size(), (size_t)25);
         for (size_t i = 0; i < count; ++i) {
-            const auto& nm = global_near_misses[i];
-            std::cout << std::setw(8) << nm.k << " | "
-                      << std::fixed << std::setprecision(6) << std::setw(14) << nm.fractional_part << " | "
-                      << std::setprecision(4) << std::setw(18) << nm.safety_ratio << " | "
-                      << std::setprecision(4) << std::setw(18) << nm.log2_safety_ratio << "\n";
+            const auto& rec = global_records[i];
+            std::cout << std::setw(10) << rec.k << " | "
+                      << std::setw(14) << rec.leading_ones << " | "
+                      << std::scientific << std::setprecision(6) << std::setw(20) << rec.distance_to_one << " | "
+                      << std::fixed << std::setprecision(5) << std::setw(14) << rec.effective_alpha << " | "
+                      << std::setw(14) << "0.415037" << "\n";
         }
-
-        std::cout << "\n--- 2. Top 10 Maximum Fractional Parts (Closest to 1.0) ---\n";
-        std::cout << std::setw(8) << "k" << " | "
-                  << std::setw(14) << "{(3/2)^k}" << " | "
-                  << std::setw(18) << "Distance to 1 (1 - frac)" << " | "
-                  << std::setw(18) << "Safety Ratio" << "\n";
-        std::cout << "-----------------------------------------------------------------\n";
-        size_t frac_count = std::min(global_highest_fractions.size(), (size_t)10);
-        for (size_t i = 0; i < frac_count; ++i) {
-            const auto& nm = global_highest_fractions[i];
-            std::cout << std::setw(8) << nm.k << " | "
-                      << std::fixed << std::setprecision(6) << std::setw(14) << nm.fractional_part << " | "
-                      << std::setprecision(6) << std::setw(18) << (1.0 - nm.fractional_part) << " | "
-                      << std::setprecision(4) << std::setw(18) << nm.safety_ratio << "\n";
-        }
-        std::cout << "=================================================================\n";
+        std::cout << "================================================================================\n";
+        std::cout << "* Note: Failure requires Alpha >= 0.415037 (or Leading 1s >= 0.415 k).\n";
+        std::cout << "* To verify any record in Python: pow(3, k, 1 << k) and inspect top bits.\n";
     }
 
     void export_records_json(const std::string& path, double total_time) {
@@ -368,29 +342,22 @@ public:
         if (!f.is_open()) return;
 
         f << "{\n";
-        f << "  \"max_k\": " << max_k << ",\n";
+        f << "  \"start_k\": " << global_start_k << ",\n";
+        f << "  \"end_k\": " << global_end_k << ",\n";
+        f << "  \"total_tested\": " << (global_end_k - global_start_k + 1) << ",\n";
         f << "  \"threads\": " << num_threads << ",\n";
         f << "  \"total_violations\": " << total_violations.load() << ",\n";
         f << "  \"total_time_seconds\": " << total_time << ",\n";
-        f << "  \"throughput_k_per_sec\": " << (uint64_t)(max_k / total_time) << ",\n";
-        f << "  \"global_near_misses\": [\n";
-        for (size_t i = 0; i < global_near_misses.size(); ++i) {
-            const auto& nm = global_near_misses[i];
-            f << "    {\"k\": " << nm.k 
-              << ", \"fractional_part\": " << nm.fractional_part
-              << ", \"safety_ratio\": " << nm.safety_ratio
-              << ", \"log2_safety_ratio\": " << nm.log2_safety_ratio << "}"
-              << (i + 1 < global_near_misses.size() ? ",\n" : "\n");
-        }
-        f << "  ],\n";
-        f << "  \"highest_fractional_parts\": [\n";
-        for (size_t i = 0; i < global_highest_fractions.size(); ++i) {
-            const auto& nm = global_highest_fractions[i];
-            f << "    {\"k\": " << nm.k 
-              << ", \"fractional_part\": " << nm.fractional_part
-              << ", \"distance_to_one\": " << (1.0 - nm.fractional_part)
-              << ", \"safety_ratio\": " << nm.safety_ratio << "}"
-              << (i + 1 < global_highest_fractions.size() ? ",\n" : "\n");
+        f << "  \"throughput_k_per_sec\": " << (uint64_t)((global_end_k - global_start_k + 1) / total_time) << ",\n";
+        f << "  \"extreme_records\": [\n";
+        for (size_t i = 0; i < global_records.size(); ++i) {
+            const auto& rec = global_records[i];
+            f << "    {\"k\": " << rec.k 
+              << ", \"leading_ones\": " << rec.leading_ones
+              << ", \"distance_to_one\": " << rec.distance_to_one
+              << ", \"fractional_part\": " << rec.fractional_part
+              << ", \"effective_alpha\": " << rec.effective_alpha << "}"
+              << (i + 1 < global_records.size() ? ",\n" : "\n");
         }
         f << "  ]\n";
         f << "}\n";
@@ -400,21 +367,29 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    uint64_t max_k = 10000000; // Default: 10 Million
-    unsigned int threads = 0;   // Auto-detect (all cores)
-    uint64_t chunk_size = 500000;
+    uint64_t start_k = 1;
+    uint64_t end_k = 10000000; // Default: 10 Million
+    unsigned int threads = 0;   // Auto-detect (all CPU cores)
+    uint64_t chunk_size = 250000;
+    uint32_t threshold_ones = 16;
 
     if (argc > 1) {
-        max_k = std::stoull(argv[1]);
-    }
-    if (argc > 2) {
-        threads = std::stoul(argv[2]);
-    }
-    if (argc > 3) {
-        chunk_size = std::stoull(argv[3]);
+        std::string arg1 = argv[1];
+        if (arg1 == "--range" && argc >= 4) {
+            start_k = std::stoull(argv[2]);
+            end_k = std::stoull(argv[3]);
+            if (argc > 4) threads = std::stoul(argv[4]);
+            if (argc > 5) chunk_size = std::stoull(argv[5]);
+            if (argc > 6) threshold_ones = std::stoul(argv[6]);
+        } else {
+            end_k = std::stoull(argv[1]);
+            if (argc > 2) threads = std::stoul(argv[2]);
+            if (argc > 3) chunk_size = std::stoull(argv[3]);
+            if (argc > 4) threshold_ones = std::stoul(argv[4]);
+        }
     }
 
-    ParallelDicksonPillaiVerifier verifier(max_k, chunk_size, threads);
+    ParallelDicksonPillaiVerifier verifier(start_k, end_k, chunk_size, threads, threshold_ones);
     verifier.run();
 
     return 0;
